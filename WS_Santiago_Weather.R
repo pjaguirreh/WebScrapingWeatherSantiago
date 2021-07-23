@@ -1,5 +1,8 @@
 library(dplyr)
 library(rvest) # paquete para web scraping
+library(stringr)
+library(ggplot2)
+library(ggridges)
 
 guardar_todo <- data.frame()
 for (a in 1970:2021){
@@ -11,9 +14,10 @@ for (a in 1970:2021){
     
     df <- read_html(url) %>% # leer url
       # detectar la información a extraer
-      rvest::html_nodes("#excel td:nth-child(6) , td:nth-child(7) , .info+ .info .text-center:nth-child(6) , .info+ .info .text-center:nth-child(5) , .col-md-12 > .table-condensed .info:nth-child(1) .text-center:nth-child(4)") %>% 
+      rvest::html_nodes("td:nth-child(8)") %>% 
       rvest::html_text() %>% # extraer texto
-      slice(-c(1:3)) %>% # sacar filas no necesarias
+      as_tibble() %>% 
+      #slice(-c(1:3)) %>% # sacar filas no necesarias
       mutate(value = str_squish(value), # sacar espacios blancos
              sacar = ifelse(str_detect(value, ":"), 1, 0)) %>% # definir filas para sacar
       filter(sacar == 0, # sacar fila definida anteriormente
@@ -42,8 +46,13 @@ datos_grafico <- guardar_todo %>%
 
 # Gráfico de distribución de temperaturas máximas 1970-2021 por mes
 datos_grafico %>% 
+  filter(año %in% c(1980, 2000, 2020)) %>% 
   ggplot(aes(x = value, y = año_mes, fill = stat(x))) +
-  geom_density_ridges_gradient(scale = 2.5, rel_min_height = 0.01) +
+  geom_density_ridges_gradient(scale = 2.5, rel_min_height = 0.02) +
   scale_fill_viridis_c(name = "Temp. [C]", option = "C") +
   theme_minimal() +
-  labs(x = NULL, y = NULL)
+  labs(x = NULL, y = NULL) +
+  facet_wrap(vars(año), nrow = 3)
+
+
+
